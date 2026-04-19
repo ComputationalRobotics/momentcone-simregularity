@@ -3,14 +3,8 @@ clear; close all;
 %% add paths
 pathinfo = dictionary();
 
-% pathinfo("mosek") = "~/ksc/matlab-install/mosek/10.1/toolbox/r2017a";
-% pathinfo("msspoly") = "~/ksc/matlab-install/spotless";
-% pathinfo("sdpt3") = "~/ksc/matlab-install/SDPT3-4.0";
-
-pathinfo("mosek") = "~/matlab-install/mosek/10.1/toolbox/r2017a";
-pathinfo("msspoly") = "~/matlab-install/spotless";
-pathinfo("sdpt3") = "~/matlab-install/SDPT3-4.0";
-pathinfo("utils") = "~/matlab-install/lab-code/utils";
+pathinfo("mosek") = "~/ksc/matlab-install/mosek/10.1/toolbox/r2017a";
+pathinfo("msspoly") = "~/ksc/matlab-install/spotless";
 
 pathinfo("sparsesdprelax") = "./sos-sdp-conversion";
 pathinfo("modules") = "./modules";
@@ -30,7 +24,6 @@ n_list = 3:10;
 
 for n = n_list
     pe_list = 2: nchoosek(n+kappa, kappa);
-    % pe_list = 2: ceil( nchoosek(n+kappa, kappa) * 1.5 );
 
     fig_filepath = "./recover/" + sprintf("k=%d_n=%d/", kappa, n); 
     if ~exist(fig_filepath, 'dir')

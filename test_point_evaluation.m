@@ -1,15 +1,11 @@
-clear; close all;
+clear all; close all; clc;
 
 %% add paths
 pathinfo = dictionary();
 
-% pathinfo("mosek") = "~/ksc/matlab-install/mosek/10.1/toolbox/r2017a";
-% pathinfo("msspoly") = "~/ksc/matlab-install/spotless";
-% pathinfo("sdpt3") = "~/ksc/matlab-install/SDPT3-4.0";
-pathinfo("mosek") = "~/matlab-install/mosek/10.1/toolbox/r2017a";
-pathinfo("msspoly") = "~/matlab-install/spotless";
-pathinfo("sdpt3") = "~/matlab-install/SDPT3-4.0";
-pathinfo("utils") = "~/matlab-install/lab-code/utils";
+% please change to your installation path of mosek and msspoly
+pathinfo("mosek") = "~/ksc/matlab-install/mosek/10.1/toolbox/r2017a";
+pathinfo("msspoly") = "~/ksc/matlab-install/spotless";
 
 pathinfo("sparsesdprelax") = "./sos-sdp-conversion";
 pathinfo("modules") = "./modules";
@@ -28,10 +24,16 @@ param.MSK_DPAR_INTPNT_CO_TOL_DFEAS   = 1e-13;  % dual   feasibility
 param.MSK_DPAR_INTPNT_CO_TOL_INFEAS  = 1e-15; % infeasibility test
 
 %% generate moment constraints
-n = 3;
+n = 5;
 kappa = 2;
+if_sos_sdp_conversion = false; % manually set true/false
 mat_size = nchoosek(n + kappa, kappa);
-[At_sdpt3, others] = generate_moment_cone(n, kappa, false);
+builder_fns = {
+    @() load_constraint_cache(kappa, n), ...
+    @() generate_moment_cone(n, kappa, false)
+};
+[At_sdpt3, others] = builder_fns{1 + if_sos_sdp_conversion}();
+
 At_sedumi = others.At_sedumi;
 m = size(At_sedumi, 2);
 
@@ -48,45 +50,14 @@ xtrue_cellarr = cell(1, 1);
 wtrue_cellarr = cell(1, 1);
 for i = 1: point_evaluation_num
     weight = rand(1);
-    % weight = randn(1);
     x_value = 2 * rand(n, 1) - 1; % x is scaled in a hyper-cube for numerical stability
-    % x_value = randn(n, 1);
-    % x_value = x_value / norm(x_value);
     point_evaluation = double( subs(others.mom_mat_symbolic, others.x, x_value) );
     M = M + weight * point_evaluation;
 
     xtrue_cellarr{i} = x_value;
     wtrue_cellarr{i} = weight;
-
-    % disp(x_value);
-    % disp(weight);
 end
 M = 0.5 * (M + M');
-
-% %% Request from Jean: harsh instances
-% M = zeros(mat_size);
-% xtrue_cellarr = cell(1, 1);
-% wtrue_cellarr = cell(1, 1);
-% point_evaluation_num_neg = 4;
-% x_list = [
-%     1, 0, 0;
-%     0, 1, 0;
-%     0, 0, 1;
-%     1, 1, 1;
-% ]';
-% for i = 1: point_evaluation_num_neg
-%     weight = rand(1);
-%     x_value = x_list(:, i);
-%     point_evaluation = double( subs(others.mom_mat_symbolic, others.x, x_value) );
-%     M = M + weight * point_evaluation;
-%     xtrue_cellarr{i} = x_value;
-%     wtrue_cellarr{i} = weight;
-% end
-% M = 0.5 * (M + M');
-
-%% reload M will pre-stored ray_cellarr
-% data = load("./data/ray_cellarr.mat");
-% M = data.ray_cellarr{6};
 
 %% extract extreme rays
 tic;
@@ -111,9 +82,6 @@ for i = 1: length(ray_cellarr)
 
     x_cellarr{i} = x;
     w_cellarr{i} = weight;
-    
-    % bar(eig(ray));
-    
 end
 
 x_cellarr = x_cellarr';
@@ -138,7 +106,23 @@ data.x_cellarr = x_cellarr;
 data.xtrue_cellarr = xtrue_cellarr;
 data.w_arr = w_arr;
 data.wtrue = wtrue_arr;
+if ~exist("./data/debug/", 'dir')
+    mkdir("./data/debug/");
+end
 save("./data/debug/" + filename, "data");
+
+function [At_sdpt3, others] = load_constraint_cache(kappa, n)
+    cone_filepath = sprintf("./constraint/moment_cone_k=%d_n=%d.mat", kappa, n);
+    if ~exist(cone_filepath, 'file')
+        error("Pre-stored constraint file not found: %s", cone_filepath);
+    end
+    cone_data = load(cone_filepath);
+    if isfield(cone_data, "data")
+        cone_data = cone_data.data;
+    end
+    At_sdpt3 = cone_data.At_sdpt3;
+    others = cone_data.others;
+end
 
 
 

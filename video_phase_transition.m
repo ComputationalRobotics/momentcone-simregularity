@@ -3,14 +3,8 @@ clear; close all;
 %% add paths
 pathinfo = dictionary();
 
-% pathinfo("mosek") = "~/ksc/matlab-install/mosek/10.1/toolbox/r2017a";
-% pathinfo("msspoly") = "~/ksc/matlab-install/spotless";
-% pathinfo("sdpt3") = "~/ksc/matlab-install/SDPT3-4.0";
-
-pathinfo("mosek") = "~/matlab-install/mosek/10.1/toolbox/r2017a";
-pathinfo("msspoly") = "~/matlab-install/spotless";
-pathinfo("sdpt3") = "~/matlab-install/SDPT3-4.0";
-pathinfo("utils") = "~/matlab-install/lab-code/utils";
+pathinfo("mosek") = "~/ksc/matlab-install/mosek/10.1/toolbox/r2017a";
+pathinfo("msspoly") = "~/ksc/matlab-install/spotless";
 
 pathinfo("sparsesdprelax") = "./sos-sdp-conversion";
 pathinfo("modules") = "./modules";

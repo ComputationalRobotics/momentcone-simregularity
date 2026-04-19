@@ -5,7 +5,6 @@ pathinfo = dictionary();
 
 pathinfo("mosek") = "~/ksc/matlab-install/mosek/10.1/toolbox/r2017a";
 pathinfo("msspoly") = "~/ksc/matlab-install/spotless";
-pathinfo("sdpt3") = "~/ksc/matlab-install/SDPT3-4.0";
 
 pathinfo("sparsesdprelax") = "./sos-sdp-conversion";
 pathinfo("modules") = "./modules";
@@ -27,19 +26,17 @@ ray_cellarr = moment_matrix_info.ray_cellarr;
 
 %% generate moment constraints
 mat_size = nchoosek(n + kappa, kappa);
-[~, others] = generate_moment_cone(n, kappa, true);
+if_sos_sdp_conversion = false; % manually set true/false
+builder_fns = {
+    @() load_constraint_cache(kappa, n), ...
+    @() generate_moment_cone(n, kappa, true)
+};
+[~, others] = builder_fns{1 + if_sos_sdp_conversion}();
 Bt_sdpt3 = others.Bt_sdpt3;
 Bt_sedumi = others.Bt_sedumi;
 
 %% Important: to make set compact: y_1 = 1!: remove the first constraint
 Bt_sedumi = Bt_sedumi(:, 2:end);
-
-% for i = 1: size(Bt_sedumi, 2)
-%     B = Bt_sedumi(:, i);
-%     B = reshape(B, mat_size, mat_size);
-%     B = full(B);
-%     disp(B);
-% end
 
 %% get u1 ... ur spanning kernel M
 for ray_num = 1: length(ray_cellarr)
@@ -70,6 +67,19 @@ for ray_num = 1: length(ray_cellarr)
     
     fprintf("ray %d: rank %d, sig_min: %3.2e \n", ray_num, nd - r, min(s));
 
+end
+
+function [At_sdpt3, others] = load_constraint_cache(kappa, n)
+    cone_filepath = sprintf("./constraint/moment_cone_k=%d_n=%d.mat", kappa, n);
+    if ~exist(cone_filepath, 'file')
+        error("Pre-stored constraint file not found: %s", cone_filepath);
+    end
+    cone_data = load(cone_filepath);
+    if isfield(cone_data, "data")
+        cone_data = cone_data.data;
+    end
+    At_sdpt3 = cone_data.At_sdpt3;
+    others = cone_data.others;
 end
 
 

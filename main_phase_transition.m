@@ -3,14 +3,8 @@ clear; close all;
 %% add paths
 pathinfo = dictionary();
 
-% pathinfo("mosek") = "~/ksc/matlab-install/mosek/10.1/toolbox/r2017a";
-% pathinfo("msspoly") = "~/ksc/matlab-install/spotless";
-% pathinfo("sdpt3") = "~/ksc/matlab-install/SDPT3-4.0";
-
-pathinfo("mosek") = "~/matlab-install/mosek/10.1/toolbox/r2017a";
-pathinfo("msspoly") = "~/matlab-install/spotless";
-pathinfo("sdpt3") = "~/matlab-install/SDPT3-4.0";
-pathinfo("utils") = "~/matlab-install/lab-code/utils";
+pathinfo("mosek") = "~/ksc/matlab-install/mosek/10.1/toolbox/r2017a";
+pathinfo("msspoly") = "~/ksc/matlab-install/spotless";
 
 pathinfo("sparsesdprelax") = "./sos-sdp-conversion";
 pathinfo("modules") = "./modules";
@@ -23,15 +17,13 @@ end
 
 sample_num = 100;
 kappa = 2;
+if_sos_sdp_conversion = false; % manually set true/false
 
-n_list = 11: 11;
+n_list = 3: 10;
 
 for n = n_list
-    % pe_list = 2: nchoosek(n+kappa, kappa);
-    % pe_list = 2: ceil( nchoosek(n+kappa, kappa) * 1.5 );
-    % pe_list = nchoosek(n+kappa, kappa)+1 : ceil( nchoosek(n+kappa, kappa) * 1.5 );
-    pe_list = 64 : ceil( nchoosek(n+kappa, kappa) ); % for n = 11, kappa = 2
-
+    pe_list = 2: nchoosek(n+kappa, kappa);
+    
     for pe = pe_list
         filepath = sprintf("./data/phase_transition/k=%d_n=%d_pe=%d/", kappa, n, pe);
         if ~exist(filepath, 'dir')
@@ -42,14 +34,14 @@ for n = n_list
             fprintf("kappa: %d, n: %d: pe: %d, i: %d \n", kappa, n, pe, i);    
 
             filename = filepath + string(i) + ".mat";
-            data = one_sample(n, kappa, pe);
+            data = one_sample(n, kappa, pe, if_sos_sdp_conversion);
             save(filename, "data");
         end
     end
     
 end
 
-function data = one_sample(n, kappa, point_evaluation_num)
+function data = one_sample(n, kappa, point_evaluation_num, if_sos_sdp_conversion)
     %% set Mosek parameters
     param = struct(); 
     param.MSK_DPAR_INTPNT_CO_TOL_REL_GAP = 1e-9;  % objective gap
@@ -59,9 +51,12 @@ function data = one_sample(n, kappa, point_evaluation_num)
     
     %% generate moment constraints
     mat_size = nchoosek(n + kappa, kappa);
-    [At_sdpt3, others] = generate_moment_cone(n, kappa, false);
+    builder_fns = {
+        @() load_constraint_cache(kappa, n), ...
+        @() generate_moment_cone(n, kappa, false)
+    };
+    [At_sdpt3, others] = builder_fns{1 + if_sos_sdp_conversion}();
     At_sedumi = others.At_sedumi;
-    m = size(At_sedumi, 2);
     
     % build up linear system for alternating projection
     linear_sys.At = At_sdpt3;
@@ -137,6 +132,19 @@ function data = one_sample(n, kappa, point_evaluation_num)
     data.x_cellarr = x_cellarr;
     data.wtrue_arr = wtrue_arr;
     data.xtrue_cellarr = xtrue_cellarr;
+end
+
+function [At_sdpt3, others] = load_constraint_cache(kappa, n)
+    cone_filepath = sprintf("./constraint/moment_cone_k=%d_n=%d.mat", kappa, n);
+    if ~exist(cone_filepath, 'file')
+        error("Pre-stored constraint file not found: %s", cone_filepath);
+    end
+    cone_data = load(cone_filepath);
+    if isfield(cone_data, "data")
+        cone_data = cone_data.data;
+    end
+    At_sdpt3 = cone_data.At_sdpt3;
+    others = cone_data.others;
 end
 
 
