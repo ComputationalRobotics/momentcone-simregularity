@@ -1,4 +1,4 @@
-# Codebase for **Simplicial Regularizability of Pseudo-Moment Cone**
+# Codebase for **[Simplicial Regularizability of the Pseudo-Moment Cone and Carathéodory-Type Atomic Decomposition of Moment Matrices](https://arxiv.org/pdf/2605.06854)**
 
 ## Setup
 
