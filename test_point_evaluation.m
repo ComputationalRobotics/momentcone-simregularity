@@ -44,7 +44,7 @@ linear_sys.R = R;
 linear_sys.P = P;
 
 %% generate moment matrix 
-point_evaluation_num = nchoosek(n+kappa, kappa);
+point_evaluation_num = n+kappa;
 M = zeros(mat_size);
 xtrue_cellarr = cell(1, 1);
 wtrue_cellarr = cell(1, 1);
