@@ -93,6 +93,7 @@ function data = one_sample(n, kappa, point_evaluation_num, if_sos_sdp_conversion
     input_info.max_iter = 20;
     input_info.mosek_param = param;
     input_info.linear_sys = linear_sys;
+    input_info.retraction = "alternating_projection"; % or "ssncg"
     [ray_cellarr, output_info] = extract_ray_restart(M, At_sedumi, input_info);
     
     %% compare to the true results

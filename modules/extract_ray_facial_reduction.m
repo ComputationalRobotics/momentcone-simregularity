@@ -5,6 +5,10 @@ function [ray_cellarr, output_info] = extract_ray_facial_reduction(M, At_sedumi,
     eps_redundant = input_info.eps_redundant;
     mosek_param = input_info.mosek_param;
     linear_sys = input_info.linear_sys;
+    % retraction onto the moment cone: "alternating_projection" (default) or "ssncg"
+    if ~isfield(input_info, "retraction")
+        input_info.retraction = "alternating_projection";
+    end
     mat_size = size(M, 1);
     mat_size_origin = mat_size;
     Q_full = eye(mat_size);
@@ -98,7 +102,7 @@ function [ray_cellarr, output_info] = extract_ray_facial_reduction(M, At_sedumi,
             input_info.eps = input_info.eps_origin;
         end
 
-        [ray_clean, ~] = conic_alternating_projection(ray, linear_sys, 500, 1e-14);
+        [ray_clean, ~] = conic_retraction(ray, linear_sys, 500, 1e-14, input_info.retraction);
         ray_compress = Q_full' * ray_clean * Q_full;
         ray_compress = 0.5 * (ray_compress + ray_compress');
 

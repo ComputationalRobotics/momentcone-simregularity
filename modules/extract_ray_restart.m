@@ -3,7 +3,11 @@ function [ray_cellarr, output_info] = extract_ray_restart(M, At_sedumi, input_in
     output_info_cellarr = cell(1, 1);
     full_rank_M = nnz( eig(M) > input_info.eps);
     linear_sys = input_info.linear_sys;
-    
+    % retraction onto the moment cone: "alternating_projection" (default) or "ssncg"
+    if ~isfield(input_info, "retraction")
+        input_info.retraction = "alternating_projection";
+    end
+
     iter = 1;
     input_info.eps_origin = input_info.eps;
     while true
@@ -33,7 +37,7 @@ function [ray_cellarr, output_info] = extract_ray_restart(M, At_sedumi, input_in
         end
     
         M = output_info.M_res;
-        [M, ~] = conic_alternating_projection(M, linear_sys, 500, 1e-14);
+        [M, ~] = conic_retraction(M, linear_sys, 500, 1e-14, input_info.retraction);
         iter = iter + 1;
     end
 end
